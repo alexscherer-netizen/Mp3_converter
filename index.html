@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MP3 Converter</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23064e3b'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%2310b981' font-family='Arial' font-weight='bold'%3E♪%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22MP3%20Converter%22%2C%22short_name%22%3A%22MP3%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23030712%22%2C%22theme_color%22%3A%22%23064e3b%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2527%2520viewBox%253D%25270%25200%2520100%2520100%2527%253E%253Crect%2520width%253D%2527100%2527%2520height%253D%2527100%2527%2520rx%253D%252720%2527%2520fill%253D%2527%2523064e3b%2527%252F%253E%253Ctext%2520x%253D%252750%2527%2520y%253D%252768%2527%2520font-size%253D%252752%2527%2520text-anchor%253D%2527middle%2527%2520fill%253D%2527%252310b981%2527%2520font-family%253D%2527Arial%2527%2520font-weight%253D%2527bold%2527%253E%25E2%2599%25AA%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<style>
+  :root{
+    --bg:#030712; --panel:#0b1220; --panel2:#111c2e; --border:#1e293b;
+    --txt:#e2e8f0; --muted:#94a3b8; --em:#10b981; --em-dark:#064e3b; --em-glow:rgba(16,185,129,.25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#06281f 0%,var(--bg) 55%);
+    color:var(--txt);min-height:100vh;padding:24px 16px 64px;line-height:1.5;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+  header{text-align:center;margin-bottom:28px}
+  header h1{font-size:1.9rem;font-weight:800;letter-spacing:-.5px}
+  header h1 span{color:var(--em)}
+  header p{color:var(--muted);font-size:.92rem;margin-top:6px}
+
+  .drop{
+    border:2px dashed var(--border);border-radius:18px;padding:42px 20px;text-align:center;
+    background:var(--panel);cursor:pointer;transition:.2s;
+  }
+  .drop:hover,.drop.over{border-color:var(--em);background:var(--panel2);box-shadow:0 0 0 4px var(--em-glow)}
+  .drop .ic{font-size:2.6rem;margin-bottom:10px}
+  .drop strong{color:var(--em)}
+  .drop small{display:block;color:var(--muted);margin-top:8px;font-size:.82rem}
+
+  .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:20px 0 4px}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:160px}
+  .field label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  select{
+    background:var(--panel2);color:var(--txt);border:1px solid var(--border);
+    border-radius:10px;padding:11px 12px;font-size:.95rem;cursor:pointer;
+  }
+  select:focus{outline:none;border-color:var(--em)}
+
+  .list{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+  .item{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:13px 15px;display:flex;align-items:center;gap:12px;
+  }
+  .item .meta{flex:1;min-width:0}
+  .item .name{font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .sub{font-size:.76rem;color:var(--muted);margin-top:2px}
+  .bar{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:7px}
+  .bar i{display:block;height:100%;width:0;background:var(--em);transition:width .15s}
+  .badge{font-size:.72rem;padding:3px 9px;border-radius:99px;white-space:nowrap}
+  .b-wait{background:#1e293b;color:var(--muted)}
+  .b-run{background:#172554;color:#60a5fa}
+  .b-done{background:var(--em-dark);color:var(--em)}
+  .b-err{background:#450a0a;color:#f87171}
+  .iconbtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:4px}
+  .iconbtn:hover{color:var(--em)}
+
+  .actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+  button.btn{
+    background:var(--em);color:#031a12;border:none;border-radius:11px;padding:13px 20px;
+    font-weight:700;font-size:.95rem;cursor:pointer;transition:.15s;flex:1;min-width:140px;
+  }
+  button.btn:hover{filter:brightness(1.08)}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  button.btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--border)}
+
+  .donate{text-align:center;margin-top:34px}
+  .donate a{
+    display:inline-block;background:#003087;color:#fff;text-decoration:none;font-weight:700;
+    padding:11px 22px;border-radius:11px;font-size:.9rem;
+  }
+  .donate a span{color:#ffc439}
+
+  footer{margin-top:30px;text-align:center}
+  .imp-toggle{background:none;border:none;color:var(--muted);font-size:.82rem;cursor:pointer;text-decoration:underline}
+  .imp{display:none;margin-top:14px;background:var(--panel);border:1px solid var(--border);
+    border-radius:12px;padding:16px;font-size:.8rem;color:var(--muted);text-align:left}
+  .imp.show{display:block}
+  .imp b{color:var(--txt)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span>♪</span> MP3 <span>Converter</span></h1>
+    <p>Audio-Dateien (WAV, OGG, M4A, FLAC, WebM …) lokal im Browser in MP3 umwandeln</p>
+  </header>
+
+  <div class="drop" id="drop">
+    <div class="ic">🎵</div>
+    <div><strong>Dateien auswählen</strong> oder hierher ziehen</div>
+    <small>Alles bleibt auf deinem Gerät – keine Uploads, kein Server</small>
+    <input type="file" id="file" accept="audio/*,.flac,.m4a,.ogg,.wav,.webm,.aac" multiple class="hidden">
+  </div>
+
+  <div class="controls">
+    <div class="field">
+      <label for="bitrate">Bitrate (Qualität)</label>
+      <select id="bitrate">
+        <option value="128">128 kbps – Standard</option>
+        <option value="192" selected>192 kbps – Gut</option>
+        <option value="256">256 kbps – Sehr gut</option>
+        <option value="320">320 kbps – Maximum</option>
+        <option value="96">96 kbps – Klein</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="channels">Kanäle</label>
+      <select id="channels">
+        <option value="auto" selected>Wie Original</option>
+        <option value="2">Stereo</option>
+        <option value="1">Mono</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="actions">
+    <button class="btn" id="convert" disabled>Umwandeln</button>
+    <button class="btn sec" id="clear" disabled>Liste leeren</button>
+  </div>
+
+  <div class="donate">
+    <a href="https://paypal.me/AlexanderGlauche" target="_blank" rel="noopener">☕ Spende per <span>PayPal</span></a>
+  </div>
+
+  <footer>
+    <button class="imp-toggle" id="impToggle">Impressum</button>
+    <div class="imp" id="imp">
+      <b>Angaben gemäß § 5 TMG</b><br>
+      Alexander Scherer<br>
+      Mertensstraße 18<br>
+      13587 Berlin<br>
+      E-Mail: info@alexander-scherer.com<br><br>
+      Kleingewerbe Fotograf gemäß § 19 UStG (Kleinunternehmerregelung).
+    </div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const drop=$('drop'), fileInput=$('file'), listEl=$('list');
+const convertBtn=$('convert'), clearBtn=$('clear');
+let queue=[]; // {file, status, progress, el, bar, badge, blob}
+
+// ---- file intake ----
+drop.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',e=>addFiles(e.target.files));
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+
+function fmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
+
+function addFiles(files){
+  [...files].forEach(f=>{
+    const item={file:f,status:'wait',progress:0,blob:null};
+    const el=document.createElement('div');el.className='item';
+    el.innerHTML=`
+      <div class="meta">
+        <div class="name">${f.name}</div>
+        <div class="sub">${fmtSize(f.size)}</div>
+        <div class="bar"><i></i></div>
+      </div>
+      <span class="badge b-wait">Wartet</span>
+      <button class="iconbtn" title="Entfernen">✕</button>`;
+    item.el=el; item.bar=el.querySelector('.bar i'); item.badge=el.querySelector('.badge');
+    el.querySelector('.iconbtn').onclick=()=>{queue=queue.filter(q=>q!==item);el.remove();refresh()};
+    listEl.appendChild(el);
+    queue.push(item);
+  });
+  refresh();
+}
+
+function refresh(){
+  const has=queue.length>0;
+  clearBtn.disabled=!has;
+  convertBtn.disabled=!has||queue.every(q=>q.status==='done');
+}
+
+clearBtn.onclick=()=>{queue=[];listEl.innerHTML='';refresh()};
+
+function setStatus(item,status,label,cls){
+  item.status=status;
+  item.badge.className='badge '+cls;
+  item.badge.textContent=label;
+}
+
+// ---- conversion ----
+convertBtn.onclick=async()=>{
+  convertBtn.disabled=true; clearBtn.disabled=true;
+  const bitrate=parseInt($('bitrate').value,10);
+  const chMode=$('channels').value;
+  for(const item of queue){
+    if(item.status==='done') continue;
+    try{
+      setStatus(item,'run','Lese…','b-run');
+      const buf=await item.file.arrayBuffer();
+      const ac=new (window.AudioContext||window.webkitAudioContext)();
+      const audio=await ac.decodeAudioData(buf);
+      setStatus(item,'run','Encode…','b-run');
+      const blob=await encodeMp3(audio,bitrate,chMode,p=>{item.bar.style.width=(p*100)+'%'});
+      ac.close();
+      item.blob=blob;
+      item.bar.style.width='100%';
+      setStatus(item,'done','Fertig','b-done');
+      addDownload(item);
+    }catch(err){
+      console.error(err);
+      setStatus(item,'err','Fehler','b-err');
+      item.el.querySelector('.sub').textContent='Format nicht lesbar: '+(err.message||err);
+    }
+  }
+  convertBtn.disabled=true; clearBtn.disabled=false;
+  refresh();
+};
+
+function addDownload(item){
+  const url=URL.createObjectURL(item.blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=item.file.name.replace(/\.[^.]+$/,'')+'.mp3';
+  a.className='iconbtn'; a.title='Download'; a.textContent='⬇';
+  a.style.fontSize='1.3rem'; a.style.textDecoration='none';
+  const oldBtn=item.el.querySelector('.iconbtn');
+  oldBtn.replaceWith(a);
+}
+
+function encodeMp3(audio,kbps,chMode,onProgress){
+  return new Promise((resolve,reject)=>{
+    try{
+      let channels = chMode==='auto'?audio.numberOfChannels:parseInt(chMode,10);
+      channels=Math.min(2,Math.max(1,channels));
+      const sr=audio.sampleRate;
+      const enc=new lamejs.Mp3Encoder(channels,sr,kbps);
+      const left=floatTo16(audio.getChannelData(0));
+      const right=channels===2
+        ? floatTo16(audio.numberOfChannels>1?audio.getChannelData(1):audio.getChannelData(0))
+        : null;
+      const block=1152, data=[];
+      let i=0; const total=left.length;
+      function step(){
+        const end=Math.min(i+block*200,total); // chunk batches to keep UI responsive
+        for(;i<end;i+=block){
+          const l=left.subarray(i,i+block);
+          let mp3;
+          if(channels===2){const r=right.subarray(i,i+block);mp3=enc.encodeBuffer(l,r);}
+          else{mp3=enc.encodeBuffer(l);}
+          if(mp3.length)data.push(new Int8Array(mp3));
+        }
+        onProgress(Math.min(i/total,0.99));
+        if(i<total){setTimeout(step,0);}
+        else{
+          const fin=enc.flush();
+          if(fin.length)data.push(new Int8Array(fin));
+          resolve(new Blob(data,{type:'audio/mpeg'}));
+        }
+      }
+      step();
+    }catch(e){reject(e);}
+  });
+}
+
+function floatTo16(f32){
+  const out=new Int16Array(f32.length);
+  for(let i=0;i<f32.length;i++){
+    let s=Math.max(-1,Math.min(1,f32[i]));
+    out[i]=s<0?s*0x8000:s*0x7FFF;
+  }
+  return out;
+}
+
+// ---- impressum ----
+$('impToggle').onclick=()=>$('imp').classList.toggle('show');
+</script>
+</body>
+</html>
